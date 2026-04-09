@@ -1025,3 +1025,169 @@ body.horary-page .out-wrap {
   body.index-page .brand-panel { display: none; }
 }
 
+/* =========================
+   Mobile-specific enhancements
+   ========================= */
+
+/* ---- Nav: horizontal scroll on mobile ---- */
+@media (max-width: 899px) {
+  body.index-page .nav-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;          /* Firefox */
+    justify-content: flex-start;
+    padding: 6px 10px;
+    gap: 4px;
+    border-radius: 16px;
+  }
+  body.index-page .nav-row::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+  body.index-page .nav-row a,
+  body.index-page .nav-row .nav-current {
+    padding: 8px 12px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  body.index-page .status {
+    flex-shrink: 0;
+  }
+
+  /* Header spacing */
+  body.index-page .header {
+    margin-bottom: 16px;
+  }
+}
+
+/* ---- Small screens (phones) ---- */
+@media (max-width: 600px) {
+  /* Page title */
+  body.index-page .page-title-block {
+    margin: 0 0 10px 2px;
+  }
+  body.index-page .page-title-block h1 {
+    font-size: 28px;
+  }
+  body.index-page .page-title-block .sub {
+    font-size: 8px;
+    letter-spacing: 1.2px;
+  }
+
+  /* Lat/Lon and other .row containers — stack vertically */
+  body.index-page .row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Form fields — slightly taller touch targets */
+  body.index-page input,
+  body.index-page select {
+    height: 40px;
+    font-size: 14px;
+    padding: 0 12px;
+  }
+  body.index-page input[type="date"],
+  body.index-page input[type="time"] {
+    font-size: 14px;
+  }
+
+  /* Button */
+  body.index-page .btn {
+    height: 44px;
+    font-size: 12px;
+    margin-top: 16px;
+  }
+
+  /* Gender row */
+  body.index-page .gender-row {
+    height: 40px;
+  }
+  body.index-page .gender-label {
+    font-size: 13px;
+  }
+
+  /* Toggle rows */
+  body.index-page .toggle-row {
+    height: 40px;
+    padding: 0 12px;
+  }
+  body.index-page .toggle-text {
+    font-size: 11px;
+  }
+
+  /* Section titles */
+  body.index-page .section-title {
+    font-size: 9px;
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+
+  /* Output area */
+  body.index-page .out-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  body.index-page .out-title {
+    font-size: 9px;
+  }
+  body.index-page .copy-btn {
+    padding: 8px 14px;
+    font-size: 11px;
+  }
+
+  /* Textarea */
+  body.index-page textarea {
+    padding: 14px;
+    font-size: 11px;
+    line-height: 1.7;
+  }
+
+  /* Cards — tighter padding */
+  body.index-page .form-wrap,
+  body.index-page .out-wrap {
+    border-radius: 14px;
+    padding: 16px 12px;
+  }
+
+  /* Autocomplete dropdown */
+  body.index-page .autocomplete-items {
+    max-height: 180px;
+  }
+  body.index-page .autocomplete-items div {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  /* Footer */
+  body.index-page .footer {
+    font-size: 9px;
+    padding: 12px 8px;
+  }
+
+  /* Background blobs — smaller on mobile to avoid bleed */
+  body.index-page::before {
+    width: 30%;
+  }
+}
+
+/* ---- Very small screens (iPhone SE, etc.) ---- */
+@media (max-width: 380px) {
+  body.index-page {
+    padding: 6px 4px;
+  }
+  body.index-page .page-title-block h1 {
+    font-size: 24px;
+  }
+  body.index-page .nav-row a,
+  body.index-page .nav-row .nav-current {
+    padding: 7px 10px;
+    font-size: 9px;
+  }
+  body.index-page .form-wrap,
+  body.index-page .out-wrap {
+    padding: 14px 10px;
+  }
+}
+
