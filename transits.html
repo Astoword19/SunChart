@@ -168,7 +168,6 @@
 
 
 
-<script src="app-state.js"></script>
 <script type="module">
 
 let swe = null;
@@ -187,7 +186,7 @@ const BODIES = [
   { key: 'neptune', id: 8, name: 'Нептун' },
   { key: 'pluto',  id: 9,  name: 'Плутон' },
   { key: 'north_node', id: 11, name: 'Сев. узел (Раху)' },
-  { key: 'lilith', id: 12, name: 'Лилит (Черная Луна)' },
+  { key: 'lilith', id: 12, name: 'Лилит' },
   { key: 'chiron', id: 15, name: 'Хирон' },
 ];
 
@@ -226,7 +225,7 @@ function sweCalcUt(jd, body) {
   return [0, 0, 0, 0];
 }
 
-// Селена (Белая Луна)
+// Селена
 function calcSelena(jd) {
   return norm(242.606 + 0.14084795 * (jd - 2451545.0));
 }
@@ -305,8 +304,8 @@ window.calculate = function() {
 
   // Селена
   const selenaLon = calcSelena(jd);
-  positions.push({ name: 'Селена (Белая Луна)', lon: selenaLon, speed: 0 });
-  L.push(`Селена (Белая Луна): ${fmtDeg(selenaLon)}`);
+  positions.push({ name: 'Селена', lon: selenaLon, speed: 0 });
+  L.push(`Селена: ${fmtDeg(selenaLon)}`);
 
   // Аспекты между транзитными планетами
   L.push('');
@@ -316,6 +315,8 @@ window.calculate = function() {
   const aspects = [];
   for (let i = 0; i < positions.length; i++) {
     for (let j = i + 1; j < positions.length; j++) {
+      const n1 = positions[i].name, n2 = positions[j].name;
+      if ((n1 === 'Сев. узел (Раху)' && n2 === 'Юж. узел (Кету)') || (n1 === 'Юж. узел (Кету)' && n2 === 'Сев. узел (Раху)')) continue;
       let d = Math.abs(positions[i].lon - positions[j].lon);
       if (d > 180) d = 360 - d;
       for (const a of ASPECT_DEFS) {

@@ -203,7 +203,6 @@
   <p>Передача/собирание света · Запрещение/рефранация · Via Combusta · Неподвижные звёзды · Жребий Фортуны</p>
 </div></div>
 
-<script src="app-state.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.45/moment-timezone-with-data.min.js"></script>
 
@@ -450,6 +449,7 @@ function calcAspects(pos) {
   const asp = [], keys = Object.keys(pos);
   for (let i = 0; i < keys.length; i++) for (let j = i+1; j < keys.length; j++) {
     const k1 = keys[i], k2 = keys[j];
+    if ((k1 === 'north_node' && k2 === 'south_node') || (k1 === 'south_node' && k2 === 'north_node')) continue;
     if (!pos[k1] || !pos[k2] || isNaN(pos[k1].longitude) || isNaN(pos[k2].longitude)) continue;
     let diff = pos[k2].longitude - pos[k1].longitude;
     if (diff > 180) diff -= 360;
