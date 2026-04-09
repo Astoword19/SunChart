@@ -156,6 +156,7 @@
     <div class="out-head">
       <span class="out-title">Положения планет</span>
       <button class="copy-btn" id="copyBtn" onclick="window.copyText()">⎘ Копировать всё</button>
+      <button class="copy-btn" id="downloadBtn" onclick="window.downloadTxt()">↓ Скачать TXT</button>
     </div>
     <textarea id="output" rows="35" readonly></textarea>
   </div>
@@ -352,6 +353,24 @@ window.copyText = function() {
     btn.textContent = '✓ Скопировано'; btn.className = 'copy-btn copied';
     setTimeout(() => { btn.textContent = '⎘ Копировать всё'; btn.className = 'copy-btn'; }, 2500);
   });
+};
+
+window.downloadTxt = function() {
+  const text = document.getElementById('output').value;
+  if (!text.trim()) return;
+  const fio = 'transits';
+  const dateEl = document.getElementById('date');
+  const dt = (dateEl && dateEl.value) ? dateEl.value : '';
+  const filename = `${fio}${dt ? '_' + dt : ''}.txt`;
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  const btn = document.getElementById('downloadBtn');
+  btn.textContent = '✓ Скачано'; btn.className = 'copy-btn copied';
+  setTimeout(() => { btn.textContent = '↓ Скачать TXT'; btn.className = 'copy-btn'; }, 2500);
 };
 
 initSWE();
