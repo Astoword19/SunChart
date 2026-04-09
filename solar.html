@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Соляр → возвращение Солнца</title>
+<meta name="theme-color" content="#080c16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Соляр">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="index-page">
+
+<img class="bg-image" src="sunchart-bg.png" alt="">
+
+<svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+  <filter id="lg-dist" x="0%" y="0%" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.008 0.008" numOctaves="1" seed="22" result="noise"/>
+    <feGaussianBlur in="noise" stdDeviation="30" result="blurred"/>
+    <feDisplacementMap in="SourceGraphic" in2="blurred" scale="60" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="nav-row">
+      <a href="index.html">Натальная карта</a>
+      <a href="natal-transits.html">Н+Транзиты</a>
+      <a href="transits.html">Транзиты</a>
+      <span class="nav-current">Соляр</span>
+      <a href="lunar.html">Лунар</a>
+      <a href="relocation.html">Релокация</a>
+      <a href="combo.html">Комбо</a>
+      <a href="compatibility.html">Совместимость</a>
+      <a href="horary.html">Хорар</a>
+      <span class="status loading" id="sweStatus">···</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap form-wrap">
+  <div class="page-title-block">
+    <h1>Соляр</h1>
+    <p class="sub">Возвращение Солнца</p>
+  </div>
+  <div class="grid">
+
+    <div class="full"><div class="section-title">Данные рождения</div></div>
+    <div class="full"><label>Имя</label><input id="name" placeholder="Введите имя" autocomplete="off"></div>
+    <div><label>Дата рождения</label><input type="date" id="birthDate" value="1990-03-21"></div>
+    <div><label>Время рождения</label><input type="time" id="birthTime" value="14:30"></div>
+    <div>
+      <label>Город рождения</label>
+      <div class="autocomplete">
+        <input id="birthCity" placeholder="Город рождения..." autocomplete="off">
+      </div>
+    </div>
+    <div>
+      <label>Пол</label>
+      <div class="gender-row">
+        <label class="gender-option"><input type="radio" name="gender" value="М" checked><span class="gender-label">М</span></label>
+        <label class="gender-option"><input type="radio" name="gender" value="Ж"><span class="gender-label">Ж</span></label>
+      </div>
+    </div>
+    <div class="full">
+      <div class="row">
+        <div><label>Широта</label><input id="birthLat" placeholder="Широта"></div>
+        <div><label>Долгота</label><input id="birthLon" placeholder="Долгота"></div>
+      </div>
+    </div>
+    <div class="full">
+      <label>Часовой пояс рождения (IANA)</label>
+      <input id="birthTz" placeholder="Europe/Moscow">
+    </div>
+
+    <div class="full"><div class="section-title">Параметры Соляра</div></div>
+    <div><label>Год Соляра</label><input type="number" id="solarYear" value="2026" min="1900" max="2100"></div>
+    <div>
+      <label>Город встречи Соляра</label>
+      <div class="autocomplete">
+        <input id="solarCity" placeholder="Если отличается..." autocomplete="off">
+      </div>
+    </div>
+    <div class="full">
+      <div class="row">
+        <div><label>Широта (Соляр)</label><input id="solarLat" placeholder="Широта"></div>
+        <div><label>Долгота (Соляр)</label><input id="solarLon" placeholder="Долгота"></div>
+      </div>
+    </div>
+    <div class="full">
+      <label>Часовой пояс встречи (IANA)</label>
+      <input id="solarTz" placeholder="Europe/Moscow">
+    </div>
+
+  </div>
+  <button class="btn" id="calcBtn" onclick="window.calculateSolar()">РАССЧИТАТЬ СОЛЯР</button>
+  <div id="error" class="error"></div>
+</div>
+
+<div class="wrap" id="resultBlock" style="display:none;">
+  <div class="out-wrap">
+    <div class="out-head">
+      <span class="out-title">Соляр — готово к копированию</span>
+      <button class="copy-btn" id="copyBtn" onclick="window.copyText()">⎘ Копировать</button>
+    </div>
+    <textarea id="output" rows="45" readonly></textarea>
+  </div>
+</div>
+
+<div class="wrap" id="emptyBlock">
+  <div class="brand-panel">
+    </div>
+</div>
+
+<script src="app-state.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.30.1/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.45/moment-timezone-with-data.min.js"></script>
+
+<script type="module">
+
+let swe = null;
+const SE_SUN = 0, SE_MOON = 1, SE_MERCURY = 2, SE_VENUS = 3, SE_MARS = 4;
+const SE_JUPITER = 5, SE_SATURN = 6, SE_URANUS = 7, SE_NEPTUNE = 8, SE_PLUTO = 9;
+const SE_TRUE_NODE = 11, SE_MEAN_APOG = 12, SE_CHIRON = 15;
+const SEFLG_SPEED = 256;
+const SE_GREG_CAL = 1;
+const SUN_SPEED_PER_DAY = 0.98564736;
+
+const SE_BODIES = {
+  sun: SE_SUN, moon: SE_MOON, mercury: SE_MERCURY, venus: SE_VENUS,
+  mars: SE_MARS, jupiter: SE_JUPITER, saturn: SE_SATURN, uranus: SE_URANUS,
+  neptune: SE_NEPTUNE, pluto: SE_PLUTO, north_node: SE_TRUE_NODE,
+  lilith: SE_MEAN_APOG, chiron: SE_CHIRON
+};
+
+const SIGNS = ['Овен','Телец','Близнецы','Рак','Лев','Дева',
+               'Весы','Скорпион','Стрелец','Козерог','Водолей','Рыбы'];
+
+const PLANET_NAMES = {
+  sun:'Солнце', moon:'Луна', mercury:'Меркурий', venus:'Венера',
+  mars:'Марс', jupiter:'Юпитер', saturn:'Сатурн', uranus:'Уран',
+  neptune:'Нептун', pluto:'Плутон', north_node:'Сев. узел (Раху)',
+  south_node:'Юж. узел (Кету)', lilith:'Лилит (Черная Луна)',
+  selena:'Селена (Белая Луна)', chiron:'Хирон', vertex:'Вертекс',
+  pars_fortuna:'Парс Фортуны', asc:'Асцендент', mc:'Середина Неба',
+};
+
+const PLANET_ORDER = [
+  'sun','moon','mercury','venus','mars','jupiter',
+  'saturn','uranus','neptune','pluto',
+  'north_node','south_node','lilith','selena','chiron',
+  'vertex','pars_fortuna'
+];
+
+const ASPECT_DEFS = [
+  { name: 'Соединение',  angle: 0,   orb: 2 },
+  { name: 'Секстиль',    angle: 60,  orb: 1.5 },
+  { name: 'Квадратура',  angle: 90,  orb: 2 },
+  { name: 'Тригон',      angle: 120, orb: 2 },
+  { name: 'Оппозиция',   angle: 180, orb: 2 },
+];
+
+function norm(d) { let r = d % 360; return r < 0 ? r + 360 : r; }
+const toDeg = r => r * 180 / Math.PI;
+const toRad = d => d * Math.PI / 180;
+
+function degToSign(deg) {
+  if (isNaN(deg)) return { sign: 'Ошибка', signIndex: 0, degree: 0, minute: 0, second: 0, absolute: 0 };
+  const d = norm(deg), idx = Math.floor(d / 30), rem = d % 30;
+  return { sign: SIGNS[idx], signIndex: idx, degree: Math.floor(rem),
+    minute: Math.floor((rem % 1) * 60), second: Math.floor(((rem % 1) * 60 % 1) * 60), absolute: d };
+}
+
+function fmtDeg(deg) {
+  if (isNaN(deg)) return 'ОШИБКА';
+  const i = degToSign(deg);
+  return `${i.degree}\u00B0${String(i.minute).padStart(2,'0')}'${String(i.second).padStart(2,'0')}" ${i.sign}`;
+}
+
+function houseOf(deg, cusps) {
+  if (!cusps || cusps.length < 12 || isNaN(deg)) return 1;
+  const d = norm(deg);
+  for (let i = 0; i < 12; i++) {
+    const s = cusps[i], e = cusps[(i + 1) % 12];
+    if (s > e) { if (d >= s || d < e) return i + 1; }
+    else       { if (d >= s && d < e) return i + 1; }
+  }
+  return 1;
+}
+
+// ─── Swiss Ephemeris обёртки ─────────────────────────────
+function sweJulday(year, month, day, hour) {
+  const fn = swe.julday || swe.swe_julday;
+  return fn.call(swe, year, month, day, hour, SE_GREG_CAL);
+}
+
+function sweCalcUt(jd, body) {
+  const fn = swe.calc_ut || swe.swe_calc_ut;
+  const r = fn.call(swe, jd, body, SEFLG_SPEED);
+  if (r && r.data && Array.isArray(r.data)) return r.data;
+  if (r && r.xx) return r.xx;
+  if (Array.isArray(r)) return r;
+  if (r && r.longitude !== undefined)
+    return [r.longitude, r.latitude || 0, r.distance || 0, r.longitudeSpeed || r.speedLong || 0];
+  if (r && typeof r === 'object') { const v = Object.values(r).filter(x => typeof x === 'number'); if (v.length >= 4) return v; }
+  return [0, 0, 0, 0];
+}
+
+function sweHouses(jd, lat, lon, sys) {
+  const hsys = typeof sys === 'string' ? sys.charCodeAt(0) : sys;
+  const fn = swe.houses || swe.swe_houses;
+  const r = fn.call(swe, jd, lat, lon, hsys);
+  let cusps = [], ascmc = [];
+  if (r) {
+    cusps = r.cusps || r.house || r.houses || (r.data && (r.data.houses || r.data.cusps || r.data.house)) || [];
+    ascmc = r.ascmc || r.points || (r.data && (r.data.ascmc || r.data.points)) || [];
+    if (Array.isArray(r) && r.length === 2) { cusps = r[0]; ascmc = r[1]; }
+  }
+  if (cusps.length === 13) cusps = cusps.slice(1);
+  return { cusps, ascmc };
+}
+
+function sweRevjul(jd) {
+  const fn = swe.revjul || swe.swe_revjul;
+  return fn.call(swe, jd, SE_GREG_CAL);
+}
+
+function calcSelena(jd) {
+  return norm(242.606 + 0.14084795 * (jd - 2451545.0));
+}
+
+// ─── Поиск точного JD Соляра ─────────────────────────────
+function findSolarReturnJD(jdBirth, targetYear, birthMonth, birthDay) {
+  const natalSun = sweCalcUt(jdBirth, SE_SUN);
+  const natalSunLon = norm(natalSun[0]);
+  let jdEstimate = sweJulday(targetYear, birthMonth, birthDay, 12.0);
+  let delta = 1, iterations = 0;
+  while (Math.abs(delta) > 0.0000001 && iterations < 20) {
+    const currentSun = sweCalcUt(jdEstimate, SE_SUN);
+    delta = natalSunLon - norm(currentSun[0]);
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+    jdEstimate += (delta / SUN_SPEED_PER_DAY);
+    iterations++;
+  }
+  return jdEstimate;
+}
+
+// ─── Расчёт позиций ─────────────────────────────────────
+function calcPositions(jd) {
+  const pos = {};
+  for (const [name, bodyCode] of Object.entries(SE_BODIES)) {
+    const data = sweCalcUt(jd, bodyCode);
+    pos[name] = { longitude: norm(data[0]), speed: data[3] || 0, retrograde: (data[3] || 0) < 0 };
+  }
+  if (pos.north_node) {
+    pos.north_node.retrograde = true;
+    pos.south_node = { longitude: norm(pos.north_node.longitude + 180), retrograde: true, speed: -(pos.north_node.speed || 0) };
+  }
+  pos.selena = { longitude: calcSelena(jd), retrograde: false, speed: 0.111 };
+  return pos;
+}
+
+function calcAllHouses(jd, lat, lon) {
+  const { cusps, ascmc } = sweHouses(jd, lat, lon, 'P');
+  const ascVal = (ascmc[0] !== undefined && !isNaN(ascmc[0])) ? ascmc[0] : 0;
+  const mcVal  = (ascmc[1] !== undefined && !isNaN(ascmc[1])) ? ascmc[1] : 0;
+  const vertexVal = (ascmc[3] !== undefined && !isNaN(ascmc[3])) ? ascmc[3] : 0;
+  let fc = cusps;
+  if (fc.length < 12 && ascVal) { fc = []; for (let i = 0; i < 12; i++) fc.push(norm(ascVal + i * 30)); }
+  return { cusps: fc, asc: norm(ascVal), mc: norm(mcVal), vertex: norm(vertexVal) };
+}
+
+// ─── Аспекты ─────────────────────────────────────────────
+function calcAspects(pos) {
+  const asp = [], keys = Object.keys(pos);
+  const skipPairs = new Set(['asc|mc', 'asc|vertex', 'mc|vertex']);
+  const fic = ['north_node','south_node','lilith','selena','vertex','pars_fortuna'];
+  for (let i = 0; i < keys.length; i++) for (let j = i+1; j < keys.length; j++) {
+    const k1 = keys[i], k2 = keys[j];
+    if (skipPairs.has([k1,k2].sort().join('|'))) continue;
+    if (!pos[k1] || !pos[k2] || isNaN(pos[k1].longitude) || isNaN(pos[k2].longitude)) continue;
+    let d = Math.abs(pos[k1].longitude - pos[k2].longitude); if (d > 180) d = 360 - d;
+    const isLum = k1==='sun'||k1==='moon'||k2==='sun'||k2==='moon';
+    const isAng = pos[k1].isAngle || pos[k2].isAngle;
+    const isAngPt = ['asc','mc'].includes(k1) || ['asc','mc'].includes(k2);
+    const isFic = fic.includes(k1) || fic.includes(k2);
+    const isOut = ['uranus','neptune','pluto'].includes(k1) || ['uranus','neptune','pluto'].includes(k2);
+    for (const a of ASPECT_DEFS) {
+      let orb = a.orb;
+      if (isLum) orb = Math.min(orb + 1, 3); // светила: до 3°
+      else if (isOut) orb = orb; // высшие планеты: без изменений
+      if (isFic && !isAngPt) orb *= 0.5; // фиктивные точки: ещё уже
+      const o = Math.abs(d - a.angle);
+      if (o <= orb) {
+        const s1 = pos[k1].speed||0, s2 = pos[k2].speed||0, sd = s1-s2;
+        let ap = null;
+        if (d < a.angle) ap = sd > 0 ? false : true; else ap = sd > 0 ? true : false;
+        asp.push({ planet1:k1, planet2:k2, type:a.name, orb:o.toFixed(2), applying:ap });
+      }
+    }
+  }
+  return asp.sort((a,b) => parseFloat(a.orb) - parseFloat(b.orb));
+}
+
+// ─── Время ───────────────────────────────────────────────
+function localToUTC(year, month, day, hour, minute, tz) {
+  const ds = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+  const cleanTz = String(tz || '').trim();
+  let loc;
+  const isOffset = /^[-+]?\d+(\.\d+)?$/.test(cleanTz) || /^[-+]?\d{1,2}:\d{2}$/.test(cleanTz);
+  if (isOffset) { const offset = /^[-+]?\d+(\.\d+)?$/.test(cleanTz) ? parseFloat(cleanTz) : cleanTz; loc = moment(ds, 'YYYY-MM-DD HH:mm').utcOffset(offset, true); }
+  else { loc = moment.tz(ds, 'YYYY-MM-DD HH:mm', cleanTz); }
+  if (!loc.isValid()) throw new Error('Невалидная дата или пояс: ' + ds + ' / ' + cleanTz);
+  const off = loc.utcOffset() / 60;
+  let abbr = loc.format('z');
+  if (isOffset && (abbr.startsWith('+') || abbr.startsWith('-') || !abbr)) abbr = 'UTC' + (off >= 0 ? '+' : '') + off;
+  const u = loc.clone().utc();
+  return { year: u.year(), month: u.month()+1, day: u.date(), hour: u.hour(), minute: u.minute(), second: u.second(), utcOffset: off, tzAbbr: abbr };
+}
+
+// ─── Инициализация SWE ──────────────────────────────────
+async function initSWE() {
+  const el = document.getElementById('sweStatus');
+  try {
+    const mod = await import('https://cdn.jsdelivr.net/gh/prolaxu/swisseph-wasm@main/src/swisseph.js');
+    const SwissEph = mod.default || mod;
+    swe = new SwissEph();
+    await swe.initSwissEph();
+    el.textContent = ''; el.className = 'status ok';
+  } catch(e) {
+    console.error('[SWE] Init failed:', e);
+    el.textContent = 'ошибка'; el.className = 'status err';
+  }
+}
+
+// ─── Главная функция расчёта Соляра ─────────────────────
+window.calculateSolar = function() {
+  const errEl = document.getElementById('error');
+  errEl.textContent = '';
+  if (!swe) { errEl.textContent = 'Swiss Ephemeris ещё загружается...'; return; }
+
+  const btn = document.getElementById('calcBtn');
+  btn.disabled = true; btn.textContent = 'РАСЧЁТ...';
+
+  try {
+    // Данные рождения
+    const bDate = document.getElementById('birthDate').value;
+    const bTime = document.getElementById('birthTime').value;
+    const bLat = parseFloat(document.getElementById('birthLat').value);
+    const bLon = parseFloat(document.getElementById('birthLon').value);
+    const bTz = document.getElementById('birthTz').value;
+    const gender = document.querySelector('input[name="gender"]:checked').value;
+
+    if (!bDate || !bTime || !bLat || !bLon || !bTz) { throw new Error('Заполните все поля данных рождения.'); }
+
+    const [bYear, bMonth, bDay] = bDate.split('-').map(Number);
+    const [bHour, bMin] = bTime.split(':').map(Number);
+    const targetYear = parseInt(document.getElementById('solarYear').value);
+
+    // Координаты встречи Соляра
+    let sLat = parseFloat(document.getElementById('solarLat').value);
+    let sLon = parseFloat(document.getElementById('solarLon').value);
+    let sTz = document.getElementById('solarTz').value;
+    let sCity = document.getElementById('solarCity').value;
+
+    // Если город соляра не указан — используем город рождения
+    if (!sLat || !sLon || isNaN(sLat) || isNaN(sLon)) { sLat = bLat; sLon = bLon; sTz = bTz; sCity = document.getElementById('birthCity').value; }
+    if (!sTz) sTz = bTz;
+
+    // 1. JD рождения
+    const uBirth = localToUTC(bYear, bMonth, bDay, bHour, bMin, bTz);
+    const jdBirth = sweJulday(uBirth.year, uBirth.month, uBirth.day, uBirth.hour + uBirth.minute/60 + uBirth.second/3600);
+
+    // Натальное Солнце
+    const natalSunData = sweCalcUt(jdBirth, SE_SUN);
+    const natalSunLon = norm(natalSunData[0]);
+
+    // 2. Найти точный JD Соляра
+    const jdSolar = findSolarReturnJD(jdBirth, targetYear, bMonth, bDay);
+
+    // 3. Дата/время Соляра по UTC
+    const revjul = sweRevjul(jdSolar);
+    let solarDateUTC, solarLocal;
+    if (revjul && revjul.year !== undefined) {
+      const h = Math.floor(revjul.hour);
+      const m = Math.floor((revjul.hour - h) * 60);
+      const s = Math.floor(((revjul.hour - h) * 60 - m) * 60);
+      solarDateUTC = moment.utc(`${revjul.year}-${String(revjul.month).padStart(2,'0')}-${String(revjul.day).padStart(2,'0')} ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`, 'YYYY-MM-DD HH:mm:ss');
+    } else {
+      // fallback
+      const daysSinceEpoch = jdSolar - 2440587.5;
+      solarDateUTC = moment.utc(daysSinceEpoch * 86400000);
+    }
+    solarLocal = solarDateUTC.clone().tz(sTz);
+
+    // 4. Расчёт карты Соляра
+    const pos = calcPositions(jdSolar);
+    const houses = calcAllHouses(jdSolar, sLat, sLon);
+
+    // Парс Фортуны соляра
+    if (pos.sun && pos.moon && !isNaN(houses.asc)) {
+      const sunH = houseOf(pos.sun.longitude, houses.cusps);
+      const isDay = sunH >= 7 && sunH <= 12;
+      pos.pars_fortuna = {
+        longitude: isDay ? norm(houses.asc + pos.moon.longitude - pos.sun.longitude)
+                         : norm(houses.asc + pos.sun.longitude - pos.moon.longitude),
+        retrograde: false, speed: 0 };
+    }
+    if (!isNaN(houses.vertex)) pos.vertex = { longitude: houses.vertex, retrograde: false, speed: 0, isAngle: true };
+    if (!isNaN(houses.asc)) pos.asc = { longitude: houses.asc, retrograde: false, speed: 0, isAngle: true };
+    if (!isNaN(houses.mc)) pos.mc = { longitude: houses.mc, retrograde: false, speed: 0, isAngle: true };
+
+    const asp = calcAspects(pos);
+
+    // 4b. Расчёт НАТАЛЬНОЙ карты
+    const natalPos = calcPositions(jdBirth);
+    const natalHouses = calcAllHouses(jdBirth, bLat, bLon);
+    if (natalPos.sun && natalPos.moon && !isNaN(natalHouses.asc)) {
+      const nSunH = houseOf(natalPos.sun.longitude, natalHouses.cusps);
+      const nIsDay = nSunH >= 7 && nSunH <= 12;
+      natalPos.pars_fortuna = {
+        longitude: nIsDay ? norm(natalHouses.asc + natalPos.moon.longitude - natalPos.sun.longitude)
+                          : norm(natalHouses.asc + natalPos.sun.longitude - natalPos.moon.longitude),
+        retrograde: false, speed: 0 };
+    }
+    if (!isNaN(natalHouses.vertex)) natalPos.vertex = { longitude: natalHouses.vertex, retrograde: false, speed: 0, isAngle: true };
+    if (!isNaN(natalHouses.asc)) natalPos.asc = { longitude: natalHouses.asc, retrograde: false, speed: 0, isAngle: true };
+    if (!isNaN(natalHouses.mc)) natalPos.mc = { longitude: natalHouses.mc, retrograde: false, speed: 0, isAngle: true };
+    natalPos.south_node = { longitude: norm(natalPos.north_node.longitude + 180), retrograde: true, speed: 0 };
+    natalPos.selena = { longitude: calcSelena(jdBirth), retrograde: false, speed: 0 };
+
+    // 4c. Кросс-аспекты (соляр → натал) — узкие орбы
+    function calcCrossAspects(solarPos, natalPos) {
+      const crossAsp = [];
+      const solarKeys = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto',
+                         'north_node','south_node','lilith','selena','chiron','vertex','pars_fortuna'];
+      const natalKeys = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto',
+                         'north_node','south_node','lilith','selena','chiron','vertex','pars_fortuna','asc','mc'];
+      const fic = ['north_node','south_node','lilith','selena','vertex','pars_fortuna'];
+
+      // Орбы для кросс-аспектов соляра (строгие прогностические орбы)
+      const CROSS_ASPECTS = [
+        { name: 'Соединение',  angle: 0,   orb: 1.5 },
+        { name: 'Секстиль',    angle: 60,  orb: 1 },
+        { name: 'Квадратура',  angle: 90,  orb: 1.5 },
+        { name: 'Тригон',      angle: 120, orb: 1.5 },
+        { name: 'Оппозиция',   angle: 180, orb: 1.5 },
+      ];
+
+      for (const sk of solarKeys) {
+        if (!solarPos[sk] || isNaN(solarPos[sk].longitude)) continue;
+        for (const nk of natalKeys) {
+          if (!natalPos[nk] || isNaN(natalPos[nk].longitude)) continue;
+          let d = Math.abs(solarPos[sk].longitude - natalPos[nk].longitude);
+          if (d > 180) d = 360 - d;
+          const isLum = sk==='sun'||sk==='moon'||nk==='sun'||nk==='moon';
+          const isFic = fic.includes(sk) || fic.includes(nk);
+          const isAngPt = ['asc','mc'].includes(nk);
+          for (const a of CROSS_ASPECTS) {
+            let orb = a.orb;
+            if (isLum) orb = Math.min(orb + 0.5, 2); // светила: макс 2°
+            if (isAngPt) orb = Math.min(orb + 0.5, 2); // ASC/MC натала: макс 2°
+            if (isFic && !isAngPt) orb *= 0.5; // фиктивные точки: ещё строже
+            const o = Math.abs(d - a.angle);
+            if (o <= orb) {
+              crossAsp.push({ solar: sk, natal: nk, type: a.name, orb: o.toFixed(2) });
+            }
+          }
+        }
+      }
+      return crossAsp.sort((a, b) => parseFloat(a.orb) - parseFloat(b.orb));
+    }
+
+    const crossAspects = calcCrossAspects(pos, natalPos);
+
+    // === РАСЧЕТ ЛУНАЦИЙ И СТАНЦИЙ ЗА ГОД СОЛЯРА ===
+
+    // Границы года соляра: от текущего возвращения до следующего
+    const jdSolarNext = findSolarReturnJD(jdBirth, targetYear + 1, bMonth, bDay);
+    const jdYearStart = jdSolar;
+    const jdYearEnd = jdSolarNext;
+
+    // Форматирование JD в локальное время
+    function formatJDLocal(jd, tz) {
+      const r = sweRevjul(jd);
+      const h = Math.floor(r.hour);
+      const m = Math.floor((r.hour - h) * 60);
+      const s = Math.floor(((r.hour - h) * 60 - m) * 60);
+      return moment.utc(`${r.year}-${String(r.month).padStart(2,'0')}-${String(r.day).padStart(2,'0')} ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`, 'YYYY-MM-DD HH:mm:ss').tz(tz).format('DD.MM.YYYY HH:mm');
+    }
+
+    // Поиск соединений с натальными точками
+    function getNatalConjunctions(deg, orb) {
+      if (orb === undefined) orb = 2;
+      const conjs = [];
+      const targets = [];
+      PLANET_ORDER.forEach(k => {
+        if (natalPos[k] && !isNaN(natalPos[k].longitude)) targets.push({ name: PLANET_NAMES[k], lon: natalPos[k].longitude });
+      });
+      if (!isNaN(natalHouses.asc)) {
+        targets.push({ name: 'ASC', lon: natalHouses.asc });
+        targets.push({ name: 'DSC', lon: norm(natalHouses.asc + 180) });
+      }
+      if (!isNaN(natalHouses.mc)) {
+        targets.push({ name: 'MC', lon: natalHouses.mc });
+        targets.push({ name: 'IC', lon: norm(natalHouses.mc + 180) });
+      }
+      targets.forEach(t => {
+        let d = Math.abs(deg - t.lon);
+        if (d > 180) d = 360 - d;
+        if (d <= orb) conjs.push(`${t.name} (${d.toFixed(1)}\u00B0)`);
+      });
+      return conjs.length ? conjs.join(', ') : '';
+    }
+
+    // --- 1. ЛУНАЦИИ (Новолуния, Полнолуния, Затмения) ---
+    const lunations = [];
+    let prevPhase = norm(sweCalcUt(jdYearStart, SE_MOON)[0] - sweCalcUt(jdYearStart, SE_SUN)[0]);
+    for (let j = jdYearStart + 0.5; j <= jdYearEnd; j += 0.5) {
+      let currPhase = norm(sweCalcUt(j, SE_MOON)[0] - sweCalcUt(j, SE_SUN)[0]);
+      let isNM = (prevPhase > 300 && currPhase < 60);
+      let isFM = (prevPhase < 180 && currPhase >= 180);
+
+      if (isNM || isFM) {
+        let left = j - 0.5, right = j;
+        for (let i = 0; i < 20; i++) {
+          let mid = (left + right) / 2;
+          let p = norm(sweCalcUt(mid, SE_MOON)[0] - sweCalcUt(mid, SE_SUN)[0]);
+          if (isNM) {
+            if (p > 180) p -= 360;
+            if (p > 0) right = mid; else left = mid;
+          } else {
+            if (p > 180) right = mid; else left = mid;
+          }
+        }
+        let exactJd = (left + right) / 2;
+        let moonLon = norm(sweCalcUt(exactJd, SE_MOON)[0]);
+        let sunLon = norm(sweCalcUt(exactJd, SE_SUN)[0]);
+
+        // Проверка на затмения
+        let nodeLon = norm(sweCalcUt(exactJd, SE_TRUE_NODE)[0]);
+        let distNode = Math.min(Math.abs(moonLon - nodeLon), 360 - Math.abs(moonLon - nodeLon));
+        let distNodeOpp = Math.min(Math.abs(moonLon - norm(nodeLon + 180)), 360 - Math.abs(moonLon - norm(nodeLon + 180)));
+        let minD = Math.min(distNode, distNodeOpp);
+
+        let typeStr = isNM ? 'Новолуние' : 'Полнолуние';
+        if (isNM && minD < 18) typeStr = 'Солн. затмение';
+        if (!isNM && minD < 12) typeStr = 'Лунн. затмение';
+
+        let eventDeg = isNM ? sunLon : moonLon;
+        lunations.push({ jd: exactJd, type: typeStr, deg: eventDeg, sunDeg: sunLon, moonDeg: moonLon });
+      }
+      prevPhase = currPhase;
+    }
+
+    // --- 2. СТАНЦИИ ПЛАНЕТ ---
+    const stations = [];
+    const stationBodies = ['venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron'];
+    for (let bName of stationBodies) {
+      let bCode = SE_BODIES[bName];
+      let planetRu = PLANET_NAMES[bName] || bName;
+      let prevSpeed = sweCalcUt(jdYearStart, bCode)[3];
+
+      for (let j = jdYearStart + 1; j <= jdYearEnd; j++) {
+        let currSpeed = sweCalcUt(j, bCode)[3];
+        if (prevSpeed * currSpeed < 0) {
+          let left = j - 1, right = j;
+          for (let i = 0; i < 20; i++) {
+            let mid = (left + right) / 2;
+            let v = sweCalcUt(mid, bCode)[3];
+            if (prevSpeed > 0) {
+              if (v > 0) left = mid; else right = mid;
+            } else {
+              if (v < 0) left = mid; else right = mid;
+            }
+          }
+          let exactJd = (left + right) / 2;
+          let deg = norm(sweCalcUt(exactJd, bCode)[0]);
+          let isRetro = prevSpeed > 0;
+          stations.push({ jd: exactJd, planet: planetRu, type: isRetro ? 'Sr' : 'Sd', deg: deg });
+        }
+        prevSpeed = currSpeed;
+      }
+    }
+
+    stations.sort((a,b) => a.jd - b.jd);
+    lunations.sort((a,b) => a.jd - b.jd);
+    // === КОНЕЦ РАСЧЕТА ЛУНАЦИЙ И СТАНЦИЙ ===
+
+    // 5. Генерация текста
+    const L = [];
+    const solarOffset = solarLocal.utcOffset() / 60;
+    const tzStr = (solarOffset >= 0 ? '+' : '') + solarOffset;
+
+    L.push('══════════ СОЛЯР (ВОЗВРАЩЕНИЕ СОЛНЦА) ══════════');
+    L.push('');
+    const nameVal = document.getElementById('name').value;
+    if (nameVal) L.push('Имя: ' + nameVal);
+    if (gender) L.push('Пол: ' + gender);
+    L.push('Дата рождения: ' + bDate);
+    L.push('Время рождения: ' + bTime + ' (' + uBirth.tzAbbr + ')');
+    L.push('Натальное Солнце: ' + fmtDeg(natalSunLon));
+    L.push('');
+    L.push('Год Соляра: ' + targetYear);
+    L.push('Точное время Соляра: ' + solarLocal.format('DD.MM.YYYY HH:mm:ss') + ' (UTC' + tzStr + ')');
+    L.push('Время UTC: ' + solarDateUTC.format('DD.MM.YYYY HH:mm:ss'));
+    L.push('Место встречи: ' + sCity + ' (' + sLat.toFixed(4) + '°, ' + sLon.toFixed(4) + '°)');
+
+    L.push(''); L.push('────────── ОСНОВНЫЕ ТОЧКИ ──────────'); L.push('');
+    L.push('ASC (Асцендент): ' + fmtDeg(houses.asc));
+    L.push('MC (Середина неба): ' + fmtDeg(houses.mc));
+    L.push('DSC (Десцендент): ' + fmtDeg(norm(houses.asc + 180)));
+    L.push('IC (Глубина неба): ' + fmtDeg(norm(houses.mc + 180)));
+
+    L.push(''); L.push('────────── ПЛАНЕТЫ СОЛЯРА ──────────'); L.push('');
+    PLANET_ORDER.forEach(k => {
+      const p = pos[k]; if (!p) return;
+      const i = degToSign(p.longitude);
+      const solarHo = houseOf(p.longitude, houses.cusps);
+      const natalHo = houseOf(p.longitude, natalHouses.cusps);
+      const r = p.retrograde ? ' (R)' : '';
+      L.push(`${PLANET_NAMES[k]}: ${i.degree}\u00B0${String(i.minute).padStart(2,'0')}'${String(i.second).padStart(2,'0')}" ${i.sign}, дом С${solarHo} / Н${natalHo}${r}`);
+    });
+
+    L.push(''); L.push('────────── КУСПИДЫ ДОМОВ (СОЛЯР) ──────────'); L.push('');
+    if (houses.cusps.length >= 12) houses.cusps.forEach((c, i) => {
+      const natalH = houseOf(c, natalHouses.cusps);
+      L.push('Дом ' + String(i+1).padStart(2) + ': ' + fmtDeg(c) + '  → натальный дом ' + natalH);
+    });
+
+    L.push(''); L.push('────────── НАЛОЖЕНИЕ ДОМОВ (СОЛЯР → НАТАЛ) ──────────'); L.push('');
+    if (natalHouses.cusps.length >= 12 && houses.cusps.length >= 12) {
+      const houseNames = ['1 Дом (AC)','2 Дом','3 Дом','4 Дом (IC)','5 Дом','6 Дом',
+                          '7 Дом (DC)','8 Дом','9 Дом','10 Дом (MC)','11 Дом','12 Дом'];
+      for (let i = 0; i < 12; i++) {
+        L.push(`${houseNames[i].padEnd(12)} Натал: ${fmtDeg(natalHouses.cusps[i]).padEnd(22)} Соляр: ${fmtDeg(houses.cusps[i])}`);
+      }
+    }
+
+    L.push(''); L.push('────────── АСПЕКТЫ СОЛЯРА ──────────'); L.push('');
+    if (!asp.length) L.push('Аспекты не обнаружены');
+    else asp.forEach(a => {
+      const n1 = PLANET_NAMES[a.planet1]||a.planet1, n2 = PLANET_NAMES[a.planet2]||a.planet2;
+      const ap = a.applying === true ? ' сходящийся' : a.applying === false ? ' расходящийся' : '';
+      L.push(`${n1} ${a.type} ${n2} (орб ${a.orb}°${ap})`);
+    });
+
+    L.push(''); L.push('────────── КРОСС-АСПЕКТЫ (СОЛЯР → НАТАЛ) ──────────'); L.push('');
+    if (!crossAspects.length) L.push('Кросс-аспекты не обнаружены');
+    else crossAspects.forEach(a => {
+      const sName = PLANET_NAMES[a.solar] || a.solar;
+      const nName = PLANET_NAMES[a.natal] || a.natal;
+      L.push(`${sName} (С) ${a.type} ${nName} (Н) (орб ${a.orb}°)`);
+    });
+
+    // ── Куспиды соляра → натальные планеты/куспиды (орб 1-2°) ──
+    L.push(''); L.push('────────── ОСИ СОЛЯРА → НАТАЛ (≤2°) ──────────'); L.push('');
+    const solarAngles = [
+      { name: 'ASC Соляра', lon: houses.asc },
+      { name: 'DSC Соляра', lon: norm(houses.asc + 180) },
+      { name: 'MC Соляра',  lon: houses.mc },
+      { name: 'IC Соляра',  lon: norm(houses.mc + 180) },
+    ];
+    const natalTargets = [];
+    // натальные планеты
+    for (const k of PLANET_ORDER) {
+      if (natalPos[k] && !isNaN(natalPos[k].longitude)) {
+        natalTargets.push({ name: PLANET_NAMES[k] || k, lon: natalPos[k].longitude });
+      }
+    }
+    // натальные углы
+    if (!isNaN(natalHouses.asc)) {
+      natalTargets.push({ name: 'ASC Натала', lon: natalHouses.asc });
+      natalTargets.push({ name: 'DSC Натала', lon: norm(natalHouses.asc + 180) });
+    }
+    if (!isNaN(natalHouses.mc)) {
+      natalTargets.push({ name: 'MC Натала', lon: natalHouses.mc });
+      natalTargets.push({ name: 'IC Натала', lon: norm(natalHouses.mc + 180) });
+    }
+    // натальные куспиды домов
+    if (natalHouses.cusps && natalHouses.cusps.length >= 12) {
+      for (let i = 0; i < 12; i++) {
+        // пропускаем 1(AC), 4(IC), 7(DC), 10(MC) — уже добавлены выше
+        if ([0,3,6,9].includes(i)) continue;
+        natalTargets.push({ name: 'Куспид ' + (i+1) + ' дома Натала', lon: natalHouses.cusps[i] });
+      }
+    }
+    const CONJ_ASPECTS = [
+      { name: 'Соединение', angle: 0, orb: 2 },
+      { name: 'Оппозиция',  angle: 180, orb: 2 },
+      { name: 'Квадратура',  angle: 90, orb: 1.5 },
+      { name: 'Тригон',      angle: 120, orb: 1.5 },
+    ];
+    const cuspsAsp = [];
+    for (const sa of solarAngles) {
+      for (const nt of natalTargets) {
+        let d = Math.abs(sa.lon - nt.lon); if (d > 180) d = 360 - d;
+        for (const a of CONJ_ASPECTS) {
+          const o = Math.abs(d - a.angle);
+          if (o <= a.orb) {
+            cuspsAsp.push({ solarAngle: sa.name, natalPoint: nt.name, type: a.name, orb: o.toFixed(2) });
+          }
+        }
+      }
+    }
+    cuspsAsp.sort((a, b) => parseFloat(a.orb) - parseFloat(b.orb));
+    if (!cuspsAsp.length) L.push('Аспектов осей не обнаружено');
+    else cuspsAsp.forEach(a => L.push(`${a.solarAngle} ${a.type} ${a.natalPoint} (орб ${a.orb}°)`));
+
+    // === ВЫВОД ЛУНАЦИЙ И СТАНЦИЙ (только значимые) ===
+    const solarStartStr = formatJDLocal(jdSolar, sTz);
+    const solarEndStr = formatJDLocal(jdSolarNext, sTz);
+    L.push(''); L.push(`────────── ЗНАЧИМЫЕ ЛУНАЦИИ И ЗАТМЕНИЯ (${solarStartStr} – ${solarEndStr}) ──────────`); L.push('');
+    let lunCount = 0;
+    lunations.forEach(l => {
+      let conjs = getNatalConjunctions(l.deg, 5);
+      let isEclipse = l.type.includes('затмение');
+      if (!conjs && !isEclipse) return; // пропускаем незначимые
+      let dStr = formatJDLocal(l.jd, sTz);
+      let signInfo = degToSign(l.deg);
+      let degStr = `${signInfo.degree}\u00B0${String(signInfo.minute).padStart(2,'0')}' ${signInfo.sign}`;
+      let hNum = houseOf(l.deg, natalHouses.cusps);
+      let txt = `${dStr}  ${l.type.padEnd(15)} ${degStr.padEnd(14)} Н-Дом ${hNum}`;
+      if (conjs) txt += `  Соед: ${conjs}`;
+      L.push(txt);
+      lunCount++;
+    });
+    if (!lunCount) L.push('Значимых лунаций не обнаружено');
+
+    L.push(''); L.push(`────────── ЗНАЧИМЫЕ СТАНЦИИ ПЛАНЕТ (${solarStartStr} – ${solarEndStr}) ──────────`); L.push('');
+    let stCount = 0;
+    stations.forEach(s => {
+      let conjs = getNatalConjunctions(s.deg, 5);
+      if (!conjs) return; // пропускаем станции без соединений
+      let dStr = formatJDLocal(s.jd, sTz);
+      let signInfo = degToSign(s.deg);
+      let degStr = `${signInfo.degree}\u00B0${String(signInfo.minute).padStart(2,'0')}' ${signInfo.sign}`;
+      let hNum = houseOf(s.deg, natalHouses.cusps);
+      let pName = s.planet.length > 9 ? s.planet.substring(0,9)+'.' : s.planet;
+      let txt = `${dStr}  ${pName.padEnd(10)} ${s.type}  ${degStr.padEnd(14)} Н-Дом ${hNum}  Соед: ${conjs}`;
+      L.push(txt);
+      stCount++;
+    });
+    if (!stCount) L.push('Значимых станций не обнаружено');
+    // === КОНЕЦ ВЫВОДА ===
+
+    // === ПИКОВЫЕ ТРАНЗИТЫ СОЛЯРНОГО ГОДА ===
+    const slowTransits = ['jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+    const majorAspects = [
+      { name: 'Соединение', angle: 0, orb: 1 },
+      { name: 'Квадратура', angle: 90, orb: 1 },
+      { name: 'Тригон', angle: 120, orb: 1 },
+      { name: 'Оппозиция', angle: 180, orb: 1 }
+    ];
+    const transitPeriods = {};
+    const completedTransits = [];
+    const transitNatalKeys = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+    const transitNatalTargets = [];
+    transitNatalKeys.forEach(k => {
+      if (natalPos[k] && !isNaN(natalPos[k].longitude)) {
+        transitNatalTargets.push({ key: k, lon: natalPos[k].longitude });
+      }
+    });
+    if (!isNaN(natalHouses.asc)) transitNatalTargets.push({ key: 'asc', lon: natalHouses.asc });
+    if (!isNaN(natalHouses.mc)) transitNatalTargets.push({ key: 'mc', lon: natalHouses.mc });
+
+    // Функция: орб аспекта между транзитной долготой и натальной точкой
+    function aspectOrb(tLon, nLon, aspectAngle) {
+      let d = Math.abs(tLon - nLon);
+      if (d > 180) d = 360 - d;
+      return Math.abs(d - aspectAngle);
+    }
+
+    // Функция: бисекция для нахождения точного пика (минимальный орб) между двумя днями
+    function refinePeak(bCode, nLon, aspectAngle, jdA, jdB) {
+      // Метод тернарного поиска минимума орба на интервале [jdA, jdB]
+      let lo = jdA, hi = jdB;
+      for (let i = 0; i < 25; i++) {
+        let m1 = lo + (hi - lo) / 3;
+        let m2 = hi - (hi - lo) / 3;
+        let o1 = aspectOrb(norm(sweCalcUt(m1, bCode)[0]), nLon, aspectAngle);
+        let o2 = aspectOrb(norm(sweCalcUt(m2, bCode)[0]), nLon, aspectAngle);
+        if (o1 < o2) hi = m2; else lo = m1;
+      }
+      let bestJd = (lo + hi) / 2;
+      let bestData = sweCalcUt(bestJd, bCode);
+      let bestLon = norm(bestData[0]);
+      let bestOrb = aspectOrb(bestLon, nLon, aspectAngle);
+      let bestSpeed = bestData[3] || 0;
+      return { jd: bestJd, lon: bestLon, orb: bestOrb, retro: bestSpeed < 0 };
+    }
+
+    // Сканируем солярный год с шагом 1 день
+    const transitDays = Math.round(jdYearEnd - jdYearStart) + 1;
+    for (let dayOffset = 0; dayOffset <= transitDays; dayOffset++) {
+      let jdT = jdYearStart + dayOffset;
+      const todaysKeys = new Set();
+
+      for (let tk of slowTransits) {
+        let bCode = SE_BODIES[tk];
+        if (bCode === undefined) continue;
+        let tData = sweCalcUt(jdT, bCode);
+        let tLon = norm(tData[0]);
+        let tSpeed = tData[3] || 0;
+
+        for (let nt of transitNatalTargets) {
+          for (let a of majorAspects) {
+            let o = aspectOrb(tLon, nt.lon, a.angle);
+            if (o <= a.orb) {
+              let aspectId = `${tk}_${a.name}_${nt.key}`;
+              todaysKeys.add(aspectId);
+
+              if (!transitPeriods[aspectId]) {
+                transitPeriods[aspectId] = {
+                  transit: tk, natal: nt.key, natalLon: nt.lon,
+                  type: a.name, aspectAngle: a.angle,
+                  startJd: jdT, endJd: jdT,
+                  peakJd: jdT, minOrb: o,
+                  peakLon: tLon, peakRetro: tSpeed < 0
+                };
+              } else {
+                transitPeriods[aspectId].endJd = jdT;
+                if (o < transitPeriods[aspectId].minOrb) {
+                  transitPeriods[aspectId].minOrb = o;
+                  transitPeriods[aspectId].peakJd = jdT;
+                  transitPeriods[aspectId].peakLon = tLon;
+                  transitPeriods[aspectId].peakRetro = tSpeed < 0;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      for (const key in transitPeriods) {
+        if (!todaysKeys.has(key)) {
+          completedTransits.push(transitPeriods[key]);
+          delete transitPeriods[key];
+        }
+      }
+    }
+    for (const key in transitPeriods) {
+      completedTransits.push(transitPeriods[key]);
+    }
+
+    // Уточняем пик бисекцией для каждого найденного транзита
+    completedTransits.forEach(t => {
+      let bCode = SE_BODIES[t.transit];
+      if (bCode === undefined) return;
+      // Берём окно ±1 день от грубого пика
+      let jdA = Math.max(t.startJd - 0.5, jdYearStart);
+      let jdB = Math.min(t.peakJd + 1, jdYearEnd);
+      if (t.peakJd > t.startJd) jdA = t.peakJd - 1;
+      let refined = refinePeak(bCode, t.natalLon, t.aspectAngle, jdA, jdB);
+      t.peakJd = refined.jd;
+      t.peakLon = refined.lon;
+      t.minOrb = refined.orb;
+      t.peakRetro = refined.retro;
+    });
+
+    completedTransits.sort((a, b) => a.peakJd - b.peakJd);
+
+    L.push(''); L.push(`────────── ПИКОВЫЕ ТРАНЗИТЫ СОЛЯРНОГО ГОДА ──────────`); L.push('');
+    if (!completedTransits.length) {
+      L.push('Мажорных транзитов медленных планет (орб \u22641\u00B0) не обнаружено.');
+    } else {
+      const ASPECT_TEXT_SOLAR = {
+        'Соединение': 'в соединении с',
+        'Секстиль': 'в секстиле с',
+        'Квадратура': 'в квадрате с',
+        'Тригон': 'в тригоне с',
+        'Оппозиция': 'в оппозиции с'
+      };
+      completedTransits.forEach(t => {
+        let peakStr = formatJDLocal(t.peakJd, sTz).substring(0, 10);
+        let startStr = formatJDLocal(t.startJd, sTz).substring(0, 10);
+        let endStr = formatJDLocal(t.endJd, sTz).substring(0, 10);
+        let tName = PLANET_NAMES[t.transit] || t.transit;
+        let nName = PLANET_NAMES[t.natal] || t.natal;
+        let retro = t.peakRetro ? ' (R)' : '';
+        let nLon = (t.natal === 'asc') ? natalHouses.asc : (t.natal === 'mc') ? natalHouses.mc : (natalPos[t.natal] ? natalPos[t.natal].longitude : NaN);
+        let nH = !isNaN(nLon) ? houseOf(nLon, natalHouses.cusps) : '\u2014';
+        let nDegStr = !isNaN(nLon) ? fmtDeg(nLon) : '';
+        let aspText = ASPECT_TEXT_SOLAR[t.type] || t.type;
+        let orbVal = t.minOrb.toFixed(2);
+
+        L.push(`тр. ${tName}${retro} ${aspText} нат. ${nName} (${nDegStr}, дом ${nH})`);
+        if (startStr === endStr) {
+          L.push(`   ${startStr} | ПИК: ${peakStr} | орб ${orbVal}\u00B0`);
+        } else {
+          L.push(`   С ${startStr} по ${endStr} | ПИК: ${peakStr} | орб ${orbVal}\u00B0`);
+        }
+        L.push('──────────────────────────────────────────');
+      });
+    }
+    // === КОНЕЦ ПИКОВЫХ ТРАНЗИТОВ ===
+
+    L.push(''); L.push('══════════════════════════════════════');
+
+    document.getElementById('output').value = L.join('\n');
+    document.getElementById('resultBlock').style.display = 'block';
+    
+    // Скрываем правый арт после успешного расчета
+    if(document.getElementById('emptyBlock')) {
+      document.getElementById('emptyBlock').style.display = 'none';
+    }
+
+  } catch(e) {
+    console.error(e);
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'РАССЧИТАТЬ СОЛЯР';
+  }
+};
+
+// ─── Копирование ─────────────────────────────────────────
+window.copyText = function() {
+  const ta = document.getElementById('output');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Скопировано'; btn.className = 'copy-btn copied';
+    setTimeout(() => { btn.textContent = '⎘ Копировать'; btn.className = 'copy-btn'; }, 2500);
+  });
+};
+
+// ─── Автокомплит городов ─────────────────────────────────
+function setupCitySearch(inputId, latId, lonId, tzId) {
+  const input = document.getElementById(inputId);
+  let timeoutId;
+  input.addEventListener('input', function() {
+    clearTimeout(timeoutId);
+    closeAllLists();
+    const val = this.value;
+    if (!val || val.length < 2) return;
+    timeoutId = setTimeout(async () => {
+      try {
+        const resp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(val)}&count=5&language=ru&format=json`);
+        const data = await resp.json();
+        if (!data.results) return;
+        const list = document.createElement('DIV');
+        list.className = 'autocomplete-items';
+        input.parentNode.appendChild(list);
+        data.results.forEach(city => {
+          const item = document.createElement('DIV');
+          const region = city.admin1 ? `, ${city.admin1}` : '';
+          const country = city.country ? ` (${city.country})` : '';
+          const tz = city.timezone || 'UTC';
+          item.innerHTML = `<span class="city-name">${city.name}</span><span class="city-region">${region}${country}</span><span class="city-tz">${tz}</span>`;
+          item.addEventListener('click', () => {
+            input.value = city.name;
+            document.getElementById(latId).value = city.latitude;
+            document.getElementById(lonId).value = city.longitude;
+            document.getElementById(tzId).value = tz;
+            closeAllLists();
+          });
+          list.appendChild(item);
+        });
+      } catch(e) { console.error(e); }
+    }, 400);
+  });
+}
+
+function closeAllLists() {
+  document.querySelectorAll('.autocomplete-items').forEach(el => el.remove());
+}
+document.addEventListener('click', closeAllLists);
+
+setupCitySearch('birthCity', 'birthLat', 'birthLon', 'birthTz');
+setupCitySearch('solarCity', 'solarLat', 'solarLon', 'solarTz');
+
+initSWE();
+</script>
+</body>
+</html>
